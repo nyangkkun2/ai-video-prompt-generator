@@ -22,7 +22,7 @@ category_data = {
     "정보전달": {
         "secondary": ["생활 꿀팁", "건강 정보", "경제 정보", "IT 정보", "학습 정보"],
         "description": "시청자에게 특정 정보를 쉽고 명확하게 전달하는 영상",
-        "default_scene": "Create an educational video that explains the topic clearly with visual examples and simple structure."
+        "default_scene": "Create an educational video that explains the topic clearly with visual examples and a simple structure."
     },
     "광고": {
         "secondary": ["제품 광고", "서비스 광고", "앱 광고", "브랜드 광고", "공익 광고"],
@@ -47,37 +47,16 @@ category_data = {
 }
 
 # ----------------------------
-# 국가별 언어 및 자동 대사 데이터
+# 국가별 언어 데이터
 # ----------------------------
 country_data = {
-    "한국": {
-        "language": "Korean",
-        "dialogue": "작은 습관이 더 좋은 하루를 만듭니다."
-    },
-    "미국": {
-        "language": "English",
-        "dialogue": "Small habits can make your day better."
-    },
-    "일본": {
-        "language": "Japanese",
-        "dialogue": "小さな習慣が、より良い一日をつくります。"
-    },
-    "중국": {
-        "language": "Chinese",
-        "dialogue": "小小的习惯，可以让生活变得更好。"
-    },
-    "프랑스": {
-        "language": "French",
-        "dialogue": "De petites habitudes peuvent améliorer votre journée."
-    },
-    "스페인": {
-        "language": "Spanish",
-        "dialogue": "Los pequeños hábitos pueden mejorar tu día."
-    },
-    "독일": {
-        "language": "German",
-        "dialogue": "Kleine Gewohnheiten können deinen Tag verbessern."
-    }
+    "한국": "Korean",
+    "미국": "English",
+    "일본": "Japanese",
+    "중국": "Chinese",
+    "프랑스": "French",
+    "스페인": "Spanish",
+    "독일": "German"
 }
 
 # ----------------------------
@@ -105,13 +84,46 @@ camera_map = {
 }
 
 # ----------------------------
-# 영상 비율
+# 영상 비율 데이터
 # ----------------------------
 ratio_map = {
     "세로형 숏폼 9:16": "vertical 9:16 format for TikTok, YouTube Shorts, and Instagram Reels",
     "가로형 16:9": "horizontal 16:9 format for YouTube and presentation videos",
     "정사각형 1:1": "square 1:1 format for social media posts"
 }
+
+# ----------------------------
+# 대사 지시문 생성 함수
+# ----------------------------
+def generate_dialogue_instruction(dialogue_type, country, user_dialogue):
+    language = country_data[country]
+
+    if dialogue_type == "자동대사":
+        return f"""
+Dialogue:
+Include natural spoken dialogue in {language}.
+The dialogue should fit the selected topic, country, mood, and scene naturally.
+Do not use a fixed scripted sentence.
+Make the dialogue sound realistic, short, and appropriate for the video style.
+""".strip()
+
+    if dialogue_type == "입력대사":
+        if user_dialogue.strip():
+            return f"""
+Dialogue:
+Include the following exact spoken dialogue in {language}.
+The dialogue must be naturally integrated into the scene.
+
+Dialogue line:
+"{user_dialogue.strip()}"
+""".strip()
+        else:
+            return f"""
+Dialogue:
+No dialogue line was entered by the user.
+If dialogue is needed, include short and natural spoken dialogue in {language} that fits the scene.
+""".strip()
+
 
 # ----------------------------
 # 프롬프트 생성 함수
@@ -125,58 +137,22 @@ def generate_prompt(
     camera_style,
     ratio,
     custom_situation,
-    custom_message,
     extra_detail,
-    dialogue_mode,
-    include_text_overlay
+    dialogue_type,
+    user_dialogue
 ):
     category = category_data[primary_keyword]
-    country_info = country_data[country]
+    language = country_data[country]
 
-    language = country_info["language"]
-    auto_dialogue = country_info["dialogue"]
-
-    final_message = custom_message.strip() if custom_message.strip() else auto_dialogue
     situation = custom_situation.strip() if custom_situation.strip() else category["default_scene"]
     extra = extra_detail.strip()
-
-    if dialogue_mode == "자동 대사 사용":
-        dialogue_instruction = f"""
-Dialogue:
-Include one short line of dialogue in {language}.
-Use this line naturally:
-"{final_message}"
-"""
-    elif dialogue_mode == "자막으로만 사용":
-        dialogue_instruction = f"""
-Dialogue:
-Do not use spoken narration.
-Use the following sentence only as on-screen subtitle text in {language}:
-"{final_message}"
-"""
-    else:
-        dialogue_instruction = """
-Dialogue:
-Do not include spoken dialogue or narration.
-"""
-
-    if include_text_overlay:
-        text_overlay_instruction = f"""
-On-screen text:
-Add simple on-screen text in {language}.
-Text: "{final_message}"
-"""
-    else:
-        text_overlay_instruction = """
-On-screen text:
-Do not include additional on-screen text unless necessary.
-"""
+    dialogue_instruction = generate_dialogue_instruction(dialogue_type, country, user_dialogue)
 
     if extra:
         extra_instruction = f"""
 Additional user detail:
 {extra}
-"""
+""".strip()
     else:
         extra_instruction = ""
 
@@ -235,18 +211,16 @@ End with a clean final shot that reinforces the main message.
 
 {dialogue_instruction}
 
-{text_overlay_instruction}
-
 {extra_instruction}
 
 Camera:
 {camera_map[camera_style]}
 
 Audio:
-Use audio that matches the selected video style.
-If dialogue is included, keep it short and natural.
-Avoid unnecessary background noise.
+Use realistic audio that matches the selected video style.
+If dialogue is included, keep it short, natural, and suitable for the selected country and language.
 Use realistic environmental sounds that fit the scene.
+Avoid unnecessary background noise.
 
 Important instructions:
 Generate only one coherent video prompt.
@@ -269,14 +243,23 @@ def generate_korean_report(
     camera_style,
     ratio,
     custom_situation,
-    custom_message,
-    dialogue_mode
+    extra_detail,
+    dialogue_type,
+    user_dialogue
 ):
-    country_info = country_data[country]
+    language = country_data[country]
     category = category_data[primary_keyword]
 
-    final_message = custom_message.strip() if custom_message.strip() else country_info["dialogue"]
     situation = custom_situation.strip() if custom_situation.strip() else "기본 장면 구성을 사용함"
+    extra = extra_detail.strip() if extra_detail.strip() else "추가 세부 내용 없음"
+
+    if dialogue_type == "자동대사":
+        dialogue_summary = f"선택한 국가의 언어인 {language}로 장면에 어울리는 자연스러운 대사가 생성되도록 설정함"
+    else:
+        if user_dialogue.strip():
+            dialogue_summary = f"사용자가 입력한 대사 사용: {user_dialogue.strip()}"
+        else:
+            dialogue_summary = "입력대사를 선택했지만 입력된 대사가 없어, 필요한 경우 자연스러운 대사를 생성하도록 설정함"
 
     report = f"""
 선택한 1차 키워드: {primary_keyword}
@@ -284,8 +267,7 @@ def generate_korean_report(
 카테고리 설명: {category['description']}
 
 선택한 국가: {country}
-사용 언어: {country_info['language']}
-자동 생성 대사/문구: {final_message}
+사용 언어: {language}
 
 영상 길이: 약 {duration}초
 영상 분위기: {tone}
@@ -295,10 +277,16 @@ def generate_korean_report(
 사용자 세부 상황:
 {situation}
 
-대사 적용 방식:
-{dialogue_mode}
+추가 세부 내용:
+{extra}
 
-이 시스템은 사용자가 선택한 영상 장르와 세부 키워드, 국가, 상황 설명을 바탕으로 Veo 3.1에 입력 가능한 영상 프롬프트를 자동 생성합니다.
+대사 방식:
+{dialogue_type}
+
+대사 설정:
+{dialogue_summary}
+
+이 시스템은 사용자가 선택한 영상 장르, 세부 키워드, 국가, 상황 설명, 대사 방식을 바탕으로 Veo 3.1에 입력 가능한 영상 프롬프트를 자동 생성합니다.
 """.strip()
 
     return report
@@ -308,9 +296,10 @@ def generate_korean_report(
 # UI 화면 구성
 # ----------------------------
 st.title("AI 영상 프롬프트 자동화 시스템")
+
 st.markdown(
     """
-    사용자가 **1차 키워드, 2차 키워드, 국가, 세부 상황**을 선택하거나 입력하면  
+    사용자가 **1차 키워드, 2차 키워드, 국가, 세부 상황, 대사 방식**을 선택하면  
     **Veo 3.1용 AI 영상 프롬프트**를 자동 생성하는 시스템입니다.
     """
 )
@@ -357,29 +346,27 @@ with col1:
         list(ratio_map.keys())
     )
 
-    dialogue_mode = st.radio(
-        "대사 적용 방식",
-        ["자동 대사 사용", "자막으로만 사용", "대사 없음"]
+    dialogue_type = st.radio(
+        "대사 방식 선택",
+        ["자동대사", "입력대사"]
     )
+
+    user_dialogue = ""
+
+    if dialogue_type == "입력대사":
+        user_dialogue = st.text_area(
+            "사용할 대사 입력",
+            placeholder="예: 오늘 하루를 더 특별하게 만들어 줄 작은 습관을 소개합니다."
+        )
 
     custom_situation = st.text_area(
         "세부 상황 입력",
         placeholder="예: 대학생이 편의점 음식을 먹으며 솔직하게 맛을 설명하는 장면"
     )
 
-    custom_message = st.text_input(
-        "직접 넣고 싶은 대사 또는 메시지",
-        placeholder="비워두면 선택한 국가 언어에 맞는 기본 대사가 자동 사용됩니다."
-    )
-
     extra_detail = st.text_area(
         "추가 세부 내용",
         placeholder="예: 숏폼 느낌으로 빠르게 전개, 음식 클로즈업 강조, 밝고 재미있는 분위기"
-    )
-
-    include_text_overlay = st.checkbox(
-        "마지막 장면에 텍스트 삽입",
-        value=True
     )
 
     generate_btn = st.button("프롬프트 생성")
@@ -394,14 +381,19 @@ with col2:
     st.markdown("---")
 
     st.write(f"**선택 국가:** {country}")
-    st.write(f"**사용 언어:** {country_data[country]['language']}")
-    st.write(f"**기본 자동 대사:** {country_data[country]['dialogue']}")
+    st.write(f"**사용 언어:** {country_data[country]}")
 
     st.markdown("---")
 
     st.write(f"**영상 분위기:** {tone}")
     st.write(f"**카메라 연출:** {camera_style}")
     st.write(f"**영상 비율:** {ratio}")
+    st.write(f"**대사 방식:** {dialogue_type}")
+
+    if dialogue_type == "자동대사":
+        st.info("자동대사 선택 시, 특정 문장을 넣는 것이 아니라 선택한 국가 언어로 자연스러운 대사가 나오도록 프롬프트에 지시합니다.")
+    else:
+        st.info("입력대사 선택 시, 사용자가 입력한 문장이 프롬프트의 대사로 들어갑니다.")
 
 # ----------------------------
 # 결과 출력
@@ -416,10 +408,9 @@ if generate_btn:
         camera_style=camera_style,
         ratio=ratio,
         custom_situation=custom_situation,
-        custom_message=custom_message,
         extra_detail=extra_detail,
-        dialogue_mode=dialogue_mode,
-        include_text_overlay=include_text_overlay
+        dialogue_type=dialogue_type,
+        user_dialogue=user_dialogue
     )
 
     report = generate_korean_report(
@@ -431,8 +422,9 @@ if generate_btn:
         camera_style=camera_style,
         ratio=ratio,
         custom_situation=custom_situation,
-        custom_message=custom_message,
-        dialogue_mode=dialogue_mode
+        extra_detail=extra_detail,
+        dialogue_type=dialogue_type,
+        user_dialogue=user_dialogue
     )
 
     st.markdown("---")
