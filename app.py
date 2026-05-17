@@ -105,6 +105,8 @@ Include natural spoken dialogue in {language}.
 The dialogue should fit the selected topic, country, mood, and scene naturally.
 Do not use a fixed scripted sentence.
 Make the dialogue sound realistic, short, and appropriate for the video style.
+The dialogue must be spoken audio only.
+Do not display the dialogue as subtitles, captions, or on-screen text.
 """.strip()
 
     if dialogue_type == "입력대사":
@@ -113,6 +115,8 @@ Make the dialogue sound realistic, short, and appropriate for the video style.
 Dialogue:
 Include the following exact spoken dialogue in {language}.
 The dialogue must be naturally integrated into the scene.
+The dialogue must be spoken audio only.
+Do not display the dialogue as subtitles, captions, or on-screen text.
 
 Dialogue line:
 "{user_dialogue.strip()}"
@@ -122,8 +126,9 @@ Dialogue line:
 Dialogue:
 No dialogue line was entered by the user.
 If dialogue is needed, include short and natural spoken dialogue in {language} that fits the scene.
+The dialogue must be spoken audio only.
+Do not display the dialogue as subtitles, captions, or on-screen text.
 """.strip()
-
 
 # ----------------------------
 # 프롬프트 생성 함수
@@ -221,6 +226,13 @@ Use realistic audio that matches the selected video style.
 If dialogue is included, keep it short, natural, and suitable for the selected country and language.
 Use realistic environmental sounds that fit the scene.
 Avoid unnecessary background noise.
+
+Text and subtitle restrictions:
+Do not generate any subtitles.
+Do not generate captions.
+Do not generate on-screen text.
+Do not generate labels, written words, UI text, signs, logos, or text overlays.
+If dialogue is included, it must be spoken audio only and must not appear visually on the screen.
 
 Important instructions:
 Generate only one coherent video prompt.
